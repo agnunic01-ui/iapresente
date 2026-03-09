@@ -126,6 +126,11 @@ Use gift_index 0, 1, 2 para cada presente na ordem fornecida. Inclua apenas prod
     const data = await response.json();
     console.log("ML API response:", JSON.stringify(data).slice(0, 2000));
 
+    // Rate limit ou erro da API
+    if (response.status === 429 || response.status >= 500) {
+      return null;
+    }
+
     // Pega o último bloco de texto (vem depois dos resultados do web_search)
     const textBlocks = data.content?.filter(b => b.type === "text") || [];
     console.log("Text blocks:", textBlocks.length, textBlocks.map(b => b.text?.slice(0, 200)));
