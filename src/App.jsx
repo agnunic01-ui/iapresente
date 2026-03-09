@@ -72,78 +72,29 @@ const ML_CATEGORIES = {
   "mouse":            { id: "MLB1648", name: "Informática" },
 };
 
-// Busca produtos reais do ML via Anthropic API com web_search
+// Busca produtos reais do ML via serverless function
 const searchMLProductsViaAI = async (gifts, budgetKey) => {
   const range = PRICE_RANGES[budgetKey];
-  const priceDesc = range
-    ? range.max === 9999 ? `acima de R$${range.min}` : `entre R$${range.min} e R$${range.max}`
-    : "";
-
-  const searchQueries = gifts.map(g => `"${g.search_term}" ${priceDesc}`).join(", ");
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
-
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      signal: controller.signal,
-      headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 4000,
-        tools: [{ type: "web_search_20250305", name: "web_search" }],
-        messages: [{
-          role: "user",
-          content: `Busque no Mercado Livre Brasil produtos reais para estas ${gifts.length} categorias de presentes: ${searchQueries}.
-
-Para cada categoria, encontre EXATAMENTE 6 produtos reais disponíveis no mercadolivre.com.br com preço ${priceDesc}. Busque produtos variados dentro da mesma categoria.
-
-Responda APENAS com este JSON (sem markdown):
-{
-  "results": [
-    {
-      "gift_index": 0,
-      "products": [
-        {
-          "title": "Nome exato do produto",
-          "price": 199.90,
-          "url": "https://www.mercadolivre.com.br/...",
-          "thumbnail": "https://http2.mlstatic.com/...",
-          "free_shipping": true
-        }
-      ]
-    }
-  ]
-}
-
-Use gift_index 0, 1, 2 para cada presente na ordem fornecida. Inclua apenas produtos com URL real do mercadolivre.com.br. Cada gift_index deve ter exatamente 6 produtos diferentes.`
-        }],
-      }),
-    });
-
-    clearTimeout(timeout);
-    const data = await response.json();
-    console.log("ML API response:", JSON.stringify(data).slice(0, 2000));
-
-    // Rate limit ou erro da API
-    if (response.status === 429 || response.status >= 500) {
-      return null;
-    }
-
-    // Pega o último bloco de texto (vem depois dos resultados do web_search)
-    const textBlocks = data.content?.filter(b => b.type === "text") || [];
-    console.log("Text blocks:", textBlocks.length, textBlocks.map(b => b.text?.slice(0, 200)));
-    const textBlock = textBlocks[textBlocks.length - 1];
-    if (!textBlock) return null;
-
-    const clean = textBlock.text.replace(/```json|```/g, "").trim();
-    console.log("Clean text:", clean.slice(0, 500));
-    // Extrai JSON mesmo que venha com texto antes/depois
-    const jsonMatch = clean.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-    return JSON.parse(jsonMatch[0]);
-  } catch {
+    const results = await Promise.all(
+      gifts.map(async (gift, index) => {
+        const res = await fetch("/api/buscar-produtos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: gift.search_term,
+            budget_min: range?.min || 0,
+            budget_max: range?.max || 9999,
+          }),
+        });
+        const data = await res.json();
+        return { gift_index: index, products: data.products || [] };
+      })
+    );
+    return { results };
+  } catch (err) {
+    console.error("Erro ao buscar produtos:", err);
     return null;
   }
 };
