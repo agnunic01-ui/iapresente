@@ -124,13 +124,16 @@ Use gift_index 0, 1, 2 para cada presente na ordem fornecida. Inclua apenas prod
 
     clearTimeout(timeout);
     const data = await response.json();
+    console.log("ML API response:", JSON.stringify(data).slice(0, 2000));
 
     // Pega o último bloco de texto (vem depois dos resultados do web_search)
     const textBlocks = data.content?.filter(b => b.type === "text") || [];
+    console.log("Text blocks:", textBlocks.length, textBlocks.map(b => b.text?.slice(0, 200)));
     const textBlock = textBlocks[textBlocks.length - 1];
     if (!textBlock) return null;
 
     const clean = textBlock.text.replace(/```json|```/g, "").trim();
+    console.log("Clean text:", clean.slice(0, 500));
     // Extrai JSON mesmo que venha com texto antes/depois
     const jsonMatch = clean.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
