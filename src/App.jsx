@@ -91,13 +91,13 @@ const searchMLProductsViaAI = async (gifts, budgetKey) => {
       headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 2000,
+        max_tokens: 4000,
         tools: [{ type: "web_search_20250305", name: "web_search" }],
         messages: [{
           role: "user",
           content: `Busque no Mercado Livre Brasil produtos reais para estas ${gifts.length} categorias de presentes: ${searchQueries}.
 
-Para cada categoria, encontre até 3 produtos reais disponíveis no mercadolivre.com.br com preço ${priceDesc}.
+Para cada categoria, encontre EXATAMENTE 6 produtos reais disponíveis no mercadolivre.com.br com preço ${priceDesc}. Busque produtos variados dentro da mesma categoria.
 
 Responda APENAS com este JSON (sem markdown):
 {
@@ -117,7 +117,7 @@ Responda APENAS com este JSON (sem markdown):
   ]
 }
 
-Use gift_index 0, 1, 2 para cada presente na ordem fornecida. Inclua apenas produtos com URL real do mercadolivre.com.br.`
+Use gift_index 0, 1, 2 para cada presente na ordem fornecida. Inclua apenas produtos com URL real do mercadolivre.com.br. Cada gift_index deve ter exatamente 6 produtos diferentes.`
         }],
       }),
     });
@@ -1073,40 +1073,44 @@ Responda APENAS com o JSON.${alreadySuggested}`
                         Ver no Mercado Livre <ArrowRight size={32} />
                       </a>
                     ) : (
-                      <div style={{ display:"flex", flexDirection:"column", gap:10, marginTop:8 }}>
-                        {mlProducts[i].map((prod, pi) => (
-                          <a key={pi} href={prod.url} target="_blank" rel="noopener noreferrer"
-                            style={{
-                              display:"flex", alignItems:"center", gap:14,
-                              background:"rgba(255,255,255,0.05)",
-                              border:"1px solid rgba(255,255,255,0.1)",
-                              padding:"12px 16px", textDecoration:"none", color:"white",
-                              transition:"all 0.2s",
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.1)"}
-                            onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.05)"}
-                          >
-                            <img src={prod.thumbnail} alt={prod.title}
-                              style={{ width:56, height:56, objectFit:"contain", flexShrink:0, background:"white", padding:4 }} />
-                            <div style={{ flex:1, minWidth:0 }}>
-                              <div style={{ fontSize:13, fontWeight:600, lineHeight:1.4, marginBottom:4,
-                                overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                      <div style={{ marginTop:16 }}>
+                        <div style={{ fontSize:11, letterSpacing:"0.15em", textTransform:"uppercase", opacity:0.3, marginBottom:14 }}>
+                          Produtos disponíveis no Mercado Livre
+                        </div>
+                        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(160px, 1fr))", gap:12 }}>
+                          {mlProducts[i].slice(0, 6).map((prod, pi) => (
+                            <a key={pi} href={prod.url} target="_blank" rel="noopener noreferrer"
+                              style={{
+                                display:"flex", flexDirection:"column",
+                                background:"rgba(255,255,255,0.05)",
+                                border:"1px solid rgba(255,255,255,0.08)",
+                                padding:"12px", textDecoration:"none", color:"white",
+                                transition:"all 0.2s", cursor:"pointer",
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.background="rgba(255,255,255,0.1)"; e.currentTarget.style.borderColor="rgba(255,255,255,0.25)"; }}
+                              onMouseLeave={e => { e.currentTarget.style.background="rgba(255,255,255,0.05)"; e.currentTarget.style.borderColor="rgba(255,255,255,0.08)"; }}
+                            >
+                              <div style={{ background:"white", padding:6, marginBottom:10, display:"flex", alignItems:"center", justifyContent:"center", height:100 }}>
+                                <img src={prod.thumbnail} alt={prod.title}
+                                  style={{ width:"100%", height:"100%", objectFit:"contain" }} />
+                              </div>
+                              <div style={{ fontSize:12, fontWeight:600, lineHeight:1.4, marginBottom:8, flex:1,
+                                overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>
                                 {prod.title}
                               </div>
-                              <div style={{ display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
-                                <span style={{ fontSize:15, fontWeight:800 }}>
+                              <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+                                <span style={{ fontSize:14, fontWeight:800 }}>
                                   R$ {prod.price?.toLocaleString("pt-BR", { minimumFractionDigits:2 })}
                                 </span>
                                 {prod.freeShipping && (
-                                  <span style={{ fontSize:10, color:"#4cff91", fontWeight:700, letterSpacing:"0.08em" }}>
+                                  <span style={{ fontSize:9, color:"#4cff91", fontWeight:700, letterSpacing:"0.08em" }}>
                                     FRETE GRÁTIS
                                   </span>
                                 )}
                               </div>
-                            </div>
-                            <ArrowRight size={24} color="rgba(255,255,255,0.4)" />
-                          </a>
-                        ))}
+                            </a>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
