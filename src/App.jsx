@@ -81,16 +81,21 @@ const searchMLProductsViaAI = async (gifts, budgetKey) => {
 
   const searchQueries = gifts.map(g => `"${g.search_term}" ${priceDesc}`).join(", ");
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2000,
-      tools: [{ type: "web_search_20250305", name: "web_search" }],
-      messages: [{
-        role: "user",
-        content: `Busque no Mercado Livre Brasil produtos reais para estas ${gifts.length} categorias de presentes: ${searchQueries}.
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 2000,
+        tools: [{ type: "web_search_20250305", name: "web_search" }],
+        messages: [{
+          role: "user",
+          content: `Busque no Mercado Livre Brasil produtos reais para estas ${gifts.length} categorias de presentes: ${searchQueries}.
 
 Para cada categoria, encontre até 3 produtos reais disponíveis no mercadolivre.com.br com preço ${priceDesc}.
 
@@ -113,16 +118,23 @@ Responda APENAS com este JSON (sem markdown):
 }
 
 Use gift_index 0, 1, 2 para cada presente na ordem fornecida. Inclua apenas produtos com URL real do mercadolivre.com.br.`
-      }],
-    }),
-  });
+        }],
+      }),
+    });
 
-  const data = await response.json();
-  const textBlock = data.content?.find(b => b.type === "text");
-  if (!textBlock) return null;
-  try {
+    clearTimeout(timeout);
+    const data = await response.json();
+
+    // Pega o último bloco de texto (vem depois dos resultados do web_search)
+    const textBlocks = data.content?.filter(b => b.type === "text") || [];
+    const textBlock = textBlocks[textBlocks.length - 1];
+    if (!textBlock) return null;
+
     const clean = textBlock.text.replace(/```json|```/g, "").trim();
-    return JSON.parse(clean);
+    // Extrai JSON mesmo que venha com texto antes/depois
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    return JSON.parse(jsonMatch[0]);
   } catch {
     return null;
   }
@@ -409,21 +421,27 @@ Responda APENAS com o JSON.${alreadySuggested}`
       // Busca produtos reais do ML via IA com web_search
       setMlProducts({});
       searchMLProductsViaAI(parsed.presents, finalAnswers.budget).then(mlData => {
-        if (!mlData?.results) return;
+        if (!mlData?.results) {
+          // Fallback: marca como "sem produtos" para mostrar link de busca
+          setMlProducts({ _fallback: true });
+          return;
+        }
         const map = {};
         mlData.results.forEach(({ gift_index, products }) => {
-          map[gift_index] = products.map(p => ({
-            title: p.title,
-            price: p.price,
-            thumbnail: p.thumbnail,
-            freeShipping: p.free_shipping,
-            url: p.url.includes("?")
-              ? `${p.url}&${ML_AFFILIATE_PARAMS}`
-              : `${p.url}?${ML_AFFILIATE_PARAMS}`,
-          }));
+          if (products?.length) {
+            map[gift_index] = products.map(p => ({
+              title: p.title,
+              price: p.price,
+              thumbnail: p.thumbnail,
+              freeShipping: p.free_shipping,
+              url: p.url.includes("?")
+                ? `${p.url}&${ML_AFFILIATE_PARAMS}`
+                : `${p.url}?${ML_AFFILIATE_PARAMS}`,
+            }));
+          }
         });
-        setMlProducts(map);
-      });
+        setMlProducts(Object.keys(map).length ? map : { _fallback: true });
+      }).catch(() => setMlProducts({ _fallback: true }));
     } catch {
       setResult({ error: true });
       setPhase("result");
@@ -1029,11 +1047,11 @@ Responda APENAS com o JSON.${alreadySuggested}`
                     </p>
 
                     {/* Produtos reais do ML */}
-                    {!mlProducts[i] ? (
+                    {Object.keys(mlProducts).length === 0 ? (
                       <div style={{ opacity:0.3, fontSize:12, letterSpacing:"0.1em", textTransform:"uppercase" }}>
                         Buscando produtos no Mercado Livre...
                       </div>
-                    ) : mlProducts[i].length === 0 ? (
+                    ) : (mlProducts._fallback || !mlProducts[i]) ? (
                       <a href={buildMLUrl(gift.search_term, result._budget)}
                         target="_blank" rel="noopener noreferrer" className="ml-btn"
                         style={{
