@@ -1,17 +1,298 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="IApresente — Sugestões de presentes personalizadas com inteligência artificial" />
-    <title>IApresente</title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { background: #0a0a1a; }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eu e Um Sonho</title>
+  <meta name="description" content="Encontre os melhores presentes nas principais plataformas do Brasil." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0d0f;
+      --surface:  #16161a;
+      --border:   rgba(255,255,255,0.08);
+      --text:     #f0ede8;
+      --muted:    #8a8580;
+      --accent:   #c9a96e;
+      --accent2:  #e8c88a;
+      --ml-color: #ffe600;
+      --sp-color: #ff6633;
+      --az-color: #ff9900;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Background texture ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(201,169,110,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 80% 80%, rgba(201,169,110,0.06) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px 64px;
+      gap: 0;
+    }
+
+    /* ── Header ── */
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+      animation: fadeUp 0.7s ease both;
+    }
+
+    .tagline-top {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+      opacity: 0.85;
+    }
+
+    .brand {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.4rem, 7vw, 4rem);
+      font-weight: 700;
+      line-height: 1.1;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .brand em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .divider {
+      width: 40px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      margin: 20px auto;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 280px;
+      margin: 0 auto;
+    }
+
+    /* ── Cards ── */
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .card {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 20px 24px;
+      border-radius: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      text-decoration: none;
+      color: var(--text);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+      animation: fadeUp 0.7s ease both;
+    }
+
+    .card:nth-child(1) { animation-delay: 0.15s; }
+    .card:nth-child(2) { animation-delay: 0.25s; }
+    .card:nth-child(3) { animation-delay: 0.35s; }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.22s ease;
+    }
+    .card.ml::before { background: radial-gradient(ellipse at left, rgba(255,230,0,0.07) 0%, transparent 70%); }
+    .card.sp::before { background: radial-gradient(ellipse at left, rgba(255,102,51,0.07) 0%, transparent 70%); }
+    .card.az::before { background: radial-gradient(ellipse at left, rgba(255,153,0,0.07) 0%, transparent 70%); }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+    }
+    .card.ml:hover { border-color: rgba(255,230,0,0.35); }
+    .card.sp:hover { border-color: rgba(255,102,51,0.35); }
+    .card.az:hover { border-color: rgba(255,153,0,0.35); }
+    .card:hover::before { opacity: 1; }
+
+    /* Icon circle */
+    .icon-wrap {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 22px;
+      position: relative;
+      z-index: 1;
+    }
+    .card.ml .icon-wrap { background: rgba(255,230,0,0.12); }
+    .card.sp .icon-wrap { background: rgba(255,102,51,0.12); }
+    .card.az .icon-wrap { background: rgba(255,153,0,0.12); }
+
+    .card-text {
+      flex: 1;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 3px;
+      color: var(--text);
+    }
+
+    .card-desc {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .card-arrow {
+      font-size: 18px;
+      color: var(--muted);
+      transition: color 0.2s, transform 0.2s;
+      position: relative;
+      z-index: 1;
+    }
+    .card.ml:hover .card-arrow { color: var(--ml-color); transform: translateX(3px); }
+    .card.sp:hover .card-arrow { color: var(--sp-color); transform: translateX(3px); }
+    .card.az:hover .card-arrow { color: var(--az-color); transform: translateX(3px); }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 52px;
+      text-align: center;
+      animation: fadeUp 0.7s 0.5s ease both;
+    }
+
+    .footer-text {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      opacity: 0.6;
+    }
+
+    /* ── Animation ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      .card { padding: 18px 18px; }
+      .icon-wrap { width: 42px; height: 42px; font-size: 20px; }
+      .card-name { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+
+    <header class="header">
+      <p class="tagline-top">Presentes com propósito</p>
+      <h1 class="brand">Eu e <em>Um Sonho</em></h1>
+      <div class="divider"></div>
+      <p class="subtitle">Escolha sua plataforma preferida e encontre o presente perfeito.</p>
+    </header>
+
+    <div class="cards">
+
+      <!-- Mercado Livre -->
+      <a
+        class="card ml"
+        href="SEU_LINK_AFILIADO_MERCADOLIVRE"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <div class="icon-wrap">🛒</div>
+        <div class="card-text">
+          <div class="card-name">Mercado Livre</div>
+          <div class="card-desc">Entrega rápida · Melhores preços do Brasil</div>
+        </div>
+        <span class="card-arrow">→</span>
+      </a>
+
+      <!-- Shopee -->
+      <a
+        class="card sp"
+        href="SEU_LINK_AFILIADO_SHOPEE"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <div class="icon-wrap">🧡</div>
+        <div class="card-text">
+          <div class="card-name">Shopee</div>
+          <div class="card-desc">Frete grátis · Cupons e ofertas diárias</div>
+        </div>
+        <span class="card-arrow">→</span>
+      </a>
+
+      <!-- Amazon -->
+      <a
+        class="card az"
+        href="SEU_LINK_AFILIADO_AMAZON"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <div class="icon-wrap">📦</div>
+        <div class="card-text">
+          <div class="card-name">Amazon</div>
+          <div class="card-desc">Prime · Variedade enorme de categorias</div>
+        </div>
+        <span class="card-arrow">→</span>
+      </a>
+
+    </div>
+
+    <footer class="footer">
+      <p class="footer-text">© 2026 Eu e Um Sonho · Links de afiliado</p>
+    </footer>
+
+  </div>
+</body>
 </html>
